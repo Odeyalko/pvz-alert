@@ -1,46 +1,30 @@
-// === Настройки ===
 const SOUND_URL = 'sound.mp3';
 const NOTIFICATION_INTERVAL = 2000;
 const NOTIFICATION_COUNT = 3;
 
-// === DOM-элементы ===
 const video = document.getElementById('webcam');
 const overlay = document.getElementById('overlay');
 const ctx = overlay.getContext('2d');
 const toggleSoundBtn = document.getElementById('toggle-sound');
 const cameraSelect = document.getElementById('camera-select');
-const sensitivitySlider = document.getElementById('sensitivity');
-const sensitivityLabel = document.getElementById('sensitivity-value');
 const eventLog = document.getElementById('event-log');
-const loadingIndicator = document.getElementById('loading');
 
-// === Состояния ===
 let isAlertEnabled = true;
 let lastDetectionTime = 0;
 let audioContext = new (window.AudioContext || window.webkitAudioContext)();
-let detectionThreshold = 0.5;
 
-// === Инициализация MediaPipe ===
-const detectorConfig = {
-  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}` 
-};
-
+// Инициализация MediaPipe
 const detector = new Pose({
-  ...detectorConfig,
-  staticImageMode: false,
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`, 
+  selfieMode: true,
   modelType: 'full',
   smoothLandmarks: true,
   minDetectionConfidence: 0.5,
   minTrackingConfidence: 0.5
 });
 
-detector.setOptions({
-  selfieMode: true
-});
-
 detector.onResults(onResults);
 
-// === Обработка результатов ===
 function onResults(results) {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
 
@@ -50,7 +34,6 @@ function onResults(results) {
   }
 }
 
-// === Рисование рамок ===
 function drawBoundingBox(landmarks) {
   const coords = landmarks.map(p => ({ x: p.x * video.videoWidth, y: p.y * video.videoHeight }));
   const xs = coords.map(p => p.x);
@@ -65,7 +48,6 @@ function drawBoundingBox(landmarks) {
   ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
 }
 
-// === Звуковые уведомления ===
 function triggerAlert() {
   if (!isAlertEnabled) return;
 
@@ -73,13 +55,11 @@ function triggerAlert() {
   if (now - lastDetectionTime > 5000) {
     lastDetectionTime = now;
 
-    // Лог события
     const time = new Date().toLocaleTimeString();
     const logEntry = document.createElement('p');
     logEntry.textContent = `⚠️ Клиент обнаружен • ${time}`;
     eventLog.prepend(logEntry);
 
-    // Звук
     for (let i = 0; i < NOTIFICATION_COUNT; i++) {
       setTimeout(() => {
         playSound();
@@ -88,7 +68,6 @@ function triggerAlert() {
   }
 }
 
-// === Воспроизведение звука ===
 async function playSound() {
   try {
     const response = await fetch(SOUND_URL);
@@ -103,27 +82,16 @@ async function playSound() {
   }
 }
 
-// === Обработчики событий ===
 toggleSoundBtn.addEventListener('click', () => {
   isAlertEnabled = !isAlertEnabled;
   toggleSoundBtn.textContent = `🔔 Уведомления: ${isAlertEnabled ? 'ВКЛ' : 'ВЫКЛ'}`;
-  toggleSoundBtn.style.background = isAlertEnabled 
-    ? 'linear-gradient(135deg, #00ffaa, #00ccff)' 
-    : 'linear-gradient(135deg, #ff4444, #cc0000)';
 });
 
-sensitivitySlider.addEventListener('input', () => {
-  detectionThreshold = parseFloat(sensitivitySlider.value);
-  sensitivityLabel.textContent = `${Math.round(detectionThreshold * 100)}%`;
-  detector.setOptions({ minDetectionConfidence: detectionThreshold });
-});
-
-// === Выбор камеры ===
 async function populateCameras() {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const cameras = devices.filter(d => d.kind === 'videoinput');
-    
+
     if (cameras.length === 0) {
       const option = document.createElement('option');
       option.textContent = 'Камера не найдена';
@@ -147,7 +115,6 @@ async function populateCameras() {
   }
 }
 
-// === Обработка видеопотока ===
 async function setupCamera(deviceId = undefined) {
   try {
     const constraints = {
@@ -155,12 +122,11 @@ async function setupCamera(deviceId = undefined) {
     };
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
-    
+
     video.onloadeddata = () => {
       overlay.width = video.videoWidth;
       overlay.height = video.videoHeight;
       video.play();
-      loadingIndicator.style.display = 'none';
     };
   } catch (err) {
     console.error('Ошибка доступа к камере:', err);
@@ -168,9 +134,7 @@ async function setupCamera(deviceId = undefined) {
   }
 }
 
-// === Инициализация ===
 async function init() {
-  loadingIndicator.style.display = 'block';
   await populateCameras();
   await setupCamera();
 }
