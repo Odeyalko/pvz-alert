@@ -1,6 +1,6 @@
 // === Настройки ===
 const SOUND_URL = 'sound.mp3';
-const NOTIFICATION_INTERVAL = 2000; // 2 секунды
+const NOTIFICATION_INTERVAL = 2000;
 const NOTIFICATION_COUNT = 3;
 
 // === DOM-элементы ===
@@ -35,14 +35,23 @@ detector.setOptions({
 });
 
 // === Обработка видеопотока ===
-async function setupCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-  video.srcObject = stream;
-  video.addEventListener('loadeddata', () => {
-    overlay.width = video.videoWidth;
-    overlay.height = video.videoHeight;
-    requestAnimationFrame(processFrame);
-  });
+async function setupCamera(deviceId = undefined) {
+  try {
+    const constraints = {
+      video: deviceId ? { deviceId: { exact: deviceId } } : true
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    
+    video.onloadeddata = () => {
+      overlay.width = video.videoWidth;
+      overlay.height = video.videoHeight;
+      requestAnimationFrame(processFrame);
+    };
+  } catch (err) {
+    console.error('Ошибка доступа к камере:', err);
+    alert('Не удалось получить доступ к камере');
+  }
 }
 
 // === Основной цикл ===
@@ -66,17 +75,24 @@ async function processFrame() {
 // === Рисование рамок ===
 function drawBoundingBoxes(poses) {
   poses.forEach(pose => {
-    const { boundingBox } = pose;
-    if (boundingBox) {
-      ctx.strokeStyle = '#00FFB3';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(
-        boundingBox topLeft.x,
-        boundingBox topLeft.y,
-        boundingBox size.width,
-        boundingBox size.height
-      );
-    }
+    const landmarks = pose.landmarks;
+    if (!landmarks) return;
+
+    // Найдём минимальные и максимальные координаты
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+
+    landmarks.forEach(point => {
+      if (point.x < minX) minX = point.x * video.videoWidth;
+      if (point.y < minY) minY = point.y * video.videoHeight;
+      if (point.x > maxX) maxX = point.x * video.videoWidth;
+      if (point.y > maxY) maxY = point.y * video.videoHeight;
+    });
+
+    // Нарисуем рамку
+    ctx.strokeStyle = '#00FFB3';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
   });
 }
 
@@ -114,32 +130,44 @@ function playSound() {
 toggleSoundBtn.addEventListener('click', () => {
   isAlertEnabled = !isAlertEnabled;
   toggleSoundBtn.textContent = `🔔 Уведомления: ${isAlertEnabled ? 'ВКЛ' : 'ВЫКЛ'}`;
+  toggleSoundBtn.style.background = isAlertEnabled 
+    ? 'linear-gradient(135deg, #00ffaa, #00ccff)' 
+    : 'linear-gradient(135deg, #ff4444, #cc0000)';
 });
 
 // === Выбор камеры ===
 async function populateCameras() {
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  const cameras = devices.filter(d => d.kind === 'videoinput');
-  
-  cameras.forEach((camera, index) => {
-    const option = document.createElement('option');
-    option.value = camera.deviceId;
-    option.text = `Камера ${index + 1}`;
-    cameraSelect.appendChild(option);
-  });
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(d => d.kind === 'videoinput');
+    
+    if (cameras.length === 0) {
+      const option = document.createElement('option');
+      option.textContent = 'Камера не найдена';
+      option.disabled = true;
+      cameraSelect.appendChild(option);
+      return;
+    }
 
-  cameraSelect.addEventListener('change', async () => {
-    video.srcObject = null;
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { deviceId: cameraSelect.value }
+    cameras.forEach((camera, index) => {
+      const option = document.createElement('option');
+      option.value = camera.deviceId;
+      option.text = `Камера ${index + 1}`;
+      cameraSelect.appendChild(option);
     });
-    video.srcObject = stream;
-  });
+
+    cameraSelect.addEventListener('change', async () => {
+      await setupCamera(cameraSelect.value);
+    });
+  } catch (err) {
+    console.error('Ошибка получения камер:', err);
+  }
 }
 
 // === Инициализация ===
-setupCamera().catch(err => {
-  alert('Не удалось получить доступ к камере: ' + err.message);
-});
+async function init() {
+  await populateCameras();
+  await setupCamera();
+}
 
-populateCameras();
+init();
