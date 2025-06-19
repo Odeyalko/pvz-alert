@@ -1,12 +1,13 @@
-/* Базовые стили */
+/* Глобальные стили */
 body {
   margin: 0;
-  background: linear-gradient(to bottom, #1A1A1A, #0F0F0F);
-  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(to bottom, #0f0f0f, #1a1a1a);
+  font-family: 'Inter', sans-serif;
   color: white;
   overflow: hidden;
 }
 
+/* Контейнер */
 .container {
   position: relative;
   width: 100vw;
@@ -31,23 +32,32 @@ video, canvas {
   right: 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 15px;
   z-index: 10;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-button, select {
-  padding: 10px 15px;
-  background: #2C2C2C;
-  border: 1px solid #444;
+/* Кнопки и селекты */
+.btn {
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #00ffaa, #00ccff);
+  border: none;
   border-radius: 8px;
-  color: white;
+  color: #000;
+  font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px rgba(0, 255, 170, 0.3);
 }
 
-button:hover {
-  background: #3A3A3A;
+.btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(0, 255, 170, 0.5);
 }
 
 /* Индикатор активности */
@@ -57,15 +67,27 @@ button:hover {
   left: 20px;
   background: #00FFB3;
   color: #000;
-  padding: 8px 15px;
+  padding: 10px 20px;
   border-radius: 8px;
   font-weight: bold;
-  animation: pulse 1s infinite;
+  animation: pulse 1s infinite, slideIn 0.5s ease-out;
   z-index: 10;
 }
 
 .hidden {
   display: none;
+}
+
+/* Анимации */
+@keyframes pulse {
+  0% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0.5; transform: scale(1); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
 /* Подпись */
@@ -81,11 +103,4 @@ button:hover {
 
 .credits:hover {
   opacity: 1;
-}
-
-/* Анимации */
-@keyframes pulse {
-  0% { opacity: 0.5; }
-  50% { opacity: 1; }
-  100% { opacity: 0.5; }
 }
