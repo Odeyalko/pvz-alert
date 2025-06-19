@@ -5,38 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PVZ Alert</title>
   <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" href="assets/logo.png" type="image/png">
 </head>
 <body>
   <div class="container">
-    <!-- Заголовок -->
     <h1 class="title">PVZ Alert System</h1>
 
-    <!-- Контейнер с видео и холстом -->
     <div class="video-container">
       <video id="webcam" autoplay muted playsinline></video>
       <canvas id="overlay"></canvas>
-      <div id="loading">Загрузка модели...</div>
     </div>
 
-    <!-- Панель управления -->
     <div class="control-panel">
-      <button id="toggle-sound" class="btn neon">🔔 Уведомления: ВКЛ</button>
-      <select id="camera-select" class="btn neon">Выберите камеру</select>
-      <input type="range" id="sensitivity" min="0.1" max="0.9" step="0.1" value="0.5" class="slider">
-      <label for="sensitivity">Чувствительность: <span id="sensitivity-value">50%</span></label>
+      <button id="toggle-sound" class="btn">🔔 Уведомления: ВКЛ</button>
+      <select id="camera-select" class="btn">Выберите камеру</select>
     </div>
 
-    <!-- Лог событий -->
     <div id="event-log" class="event-log">
       <p>Система запущена</p>
     </div>
 
-    <!-- Подпись -->
     <footer class="credits">by Odeyalko</footer>
   </div>
 
-  <!-- Библиотеки ML -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script> 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.min.js"></script> 
   <script src="app.js"></script>
