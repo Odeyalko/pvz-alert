@@ -8,9 +8,7 @@ const video = document.getElementById('webcam');
 const overlay = document.getElementById('overlay');
 const ctx = overlay.getContext('2d');
 const toggleSoundBtn = document.getElementById('toggle-sound');
-const cameraSelect = document.getElementById('camera-select');
 const eventLog = document.getElementById('event-log');
-const loadingIndicator = document.getElementById('loading');
 
 // === Состояния ===
 let isAlertEnabled = true;
@@ -78,6 +76,11 @@ function triggerAlert() {
 // === Воспроизведение звука ===
 async function playSound() {
   try {
+    // Активируем AudioContext при первом клике
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+
     const response = await fetch(SOUND_URL);
     const arrayBuffer = await response.arrayBuffer();
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
@@ -96,49 +99,17 @@ toggleSoundBtn.addEventListener('click', () => {
   toggleSoundBtn.textContent = `🔔 Уведомления: ${isAlertEnabled ? 'ВКЛ' : 'ВЫКЛ'}`;
 });
 
-// === Выбор камеры ===
-async function populateCameras() {
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const cameras = devices.filter(d => d.kind === 'videoinput');
-
-    if (cameras.length === 0) {
-      const option = document.createElement('option');
-      option.textContent = 'Камера не найдена';
-      option.disabled = true;
-      cameraSelect.appendChild(option);
-      return;
-    }
-
-    cameras.forEach((camera, index) => {
-      const option = document.createElement('option');
-      option.value = camera.deviceId;
-      option.text = `Камера ${index + 1}`;
-      cameraSelect.appendChild(option);
-    });
-
-    cameraSelect.addEventListener('change', async () => {
-      await setupCamera(cameraSelect.value);
-    });
-  } catch (err) {
-    console.error('Ошибка получения камер:', err);
-  }
-}
-
 // === Обработка видеопотока ===
-async function setupCamera(deviceId = undefined) {
+async function setupCamera() {
   try {
-    const constraints = {
-      video: deviceId ? { deviceId: { exact: deviceId } } : true
-    };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     video.srcObject = stream;
 
     video.onloadeddata = () => {
       overlay.width = video.videoWidth;
       overlay.height = video.videoHeight;
       video.play();
-      loadingIndicator.style.display = 'none';
+      requestAnimationFrame(processFrame);
     };
   } catch (err) {
     console.error('Ошибка доступа к камере:', err);
@@ -148,8 +119,6 @@ async function setupCamera(deviceId = undefined) {
 
 // === Инициализация ===
 async function init() {
-  loadingIndicator.style.display = 'block';
-  await populateCameras();
   await setupCamera();
 }
 
