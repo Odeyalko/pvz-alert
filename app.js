@@ -9,12 +9,16 @@ const overlay = document.getElementById('overlay');
 const ctx = overlay.getContext('2d');
 const toggleSoundBtn = document.getElementById('toggle-sound');
 const cameraSelect = document.getElementById('camera-select');
-const activityIndicator = document.getElementById('activity-indicator');
+const sensitivitySlider = document.getElementById('sensitivity');
+const sensitivityLabel = document.getElementById('sensitivity-value');
+const eventLog = document.getElementById('event-log');
+const loadingIndicator = document.getElementById('loading');
 
 // === Состояния ===
 let isAlertEnabled = true;
 let lastDetectionTime = 0;
 let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+let detectionThreshold = 0.5;
 
 // === Инициализация MediaPipe ===
 const detectorConfig = {
@@ -34,77 +38,48 @@ detector.setOptions({
   selfieMode: true
 });
 
-// === Обработка видеопотока ===
-async function setupCamera(deviceId = undefined) {
-  try {
-    const constraints = {
-      video: deviceId ? { deviceId: { exact: deviceId } } : true
-    };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject = stream;
-    
-    video.onloadeddata = () => {
-      overlay.width = video.videoWidth;
-      overlay.height = video.videoHeight;
-      requestAnimationFrame(processFrame);
-    };
-  } catch (err) {
-    console.error('Ошибка доступа к камере:', err);
-    alert('Не удалось получить доступ к камере');
-  }
-}
+detector.onResults(onResults);
 
-// === Основной цикл ===
-async function processFrame() {
+// === Обработка результатов ===
+function onResults(results) {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
-  
-  try {
-    const results = await detector.estimatePoses(video);
-    
-    if (results.length > 0) {
-      drawBoundingBoxes(results);
-      triggerAlert();
-    }
-  } catch (error) {
-    console.error('Ошибка детекции:', error);
-  }
 
-  requestAnimationFrame(processFrame);
+  if (results.poseLandmarks) {
+    drawBoundingBox(results.poseLandmarks);
+    triggerAlert();
+  }
 }
 
 // === Рисование рамок ===
-function drawBoundingBoxes(poses) {
-  poses.forEach(pose => {
-    const landmarks = pose.landmarks;
-    if (!landmarks) return;
+function drawBoundingBox(landmarks) {
+  const coords = landmarks.map(p => ({ x: p.x * video.videoWidth, y: p.y * video.videoHeight }));
+  const xs = coords.map(p => p.x);
+  const ys = coords.map(p => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
 
-    // Найдём минимальные и максимальные координаты
-    let minX = Infinity, minY = Infinity;
-    let maxX = -Infinity, maxY = -Infinity;
-
-    landmarks.forEach(point => {
-      if (point.x < minX) minX = point.x * video.videoWidth;
-      if (point.y < minY) minY = point.y * video.videoHeight;
-      if (point.x > maxX) maxX = point.x * video.videoWidth;
-      if (point.y > maxY) maxY = point.y * video.videoHeight;
-    });
-
-    // Нарисуем рамку
-    ctx.strokeStyle = '#00FFB3';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-  });
+  ctx.strokeStyle = '#00FFB3';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
 }
 
 // === Звуковые уведомления ===
 function triggerAlert() {
   if (!isAlertEnabled) return;
-  
+
   const now = Date.now();
   if (now - lastDetectionTime > 5000) {
     lastDetectionTime = now;
-    activityIndicator.classList.remove('hidden');
-    
+
+    // Лог события
+    const time = new Date().toLocaleTimeString();
+    const logEntry = document.createElement('p');
+    logEntry.textContent = `⚠️ Клиент обнаружен • ${time}`;
+    eventLog.prepend(logEntry);
+
+    // Звук
     for (let i = 0; i < NOTIFICATION_COUNT; i++) {
       setTimeout(() => {
         playSound();
@@ -114,16 +89,18 @@ function triggerAlert() {
 }
 
 // === Воспроизведение звука ===
-function playSound() {
-  fetch(SOUND_URL)
-    .then(response => response.arrayBuffer())
-    .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-    .then(audioBuffer => {
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContext.destination);
-      source.start();
-    });
+async function playSound() {
+  try {
+    const response = await fetch(SOUND_URL);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(audioContext.destination);
+    source.start();
+  } catch (err) {
+    console.error('Ошибка воспроизведения звука:', err);
+  }
 }
 
 // === Обработчики событий ===
@@ -133,6 +110,12 @@ toggleSoundBtn.addEventListener('click', () => {
   toggleSoundBtn.style.background = isAlertEnabled 
     ? 'linear-gradient(135deg, #00ffaa, #00ccff)' 
     : 'linear-gradient(135deg, #ff4444, #cc0000)';
+});
+
+sensitivitySlider.addEventListener('input', () => {
+  detectionThreshold = parseFloat(sensitivitySlider.value);
+  sensitivityLabel.textContent = `${Math.round(detectionThreshold * 100)}%`;
+  detector.setOptions({ minDetectionConfidence: detectionThreshold });
 });
 
 // === Выбор камеры ===
@@ -164,8 +147,30 @@ async function populateCameras() {
   }
 }
 
+// === Обработка видеопотока ===
+async function setupCamera(deviceId = undefined) {
+  try {
+    const constraints = {
+      video: deviceId ? { deviceId: { exact: deviceId } } : true
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    
+    video.onloadeddata = () => {
+      overlay.width = video.videoWidth;
+      overlay.height = video.videoHeight;
+      video.play();
+      loadingIndicator.style.display = 'none';
+    };
+  } catch (err) {
+    console.error('Ошибка доступа к камере:', err);
+    alert('Не удалось получить доступ к камере');
+  }
+}
+
 // === Инициализация ===
 async function init() {
+  loadingIndicator.style.display = 'block';
   await populateCameras();
   await setupCamera();
 }
