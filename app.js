@@ -1,19 +1,23 @@
+// === Настройки ===
 const SOUND_URL = 'sound.mp3';
 const NOTIFICATION_INTERVAL = 2000;
 const NOTIFICATION_COUNT = 3;
 
+// === DOM-элементы ===
 const video = document.getElementById('webcam');
 const overlay = document.getElementById('overlay');
 const ctx = overlay.getContext('2d');
 const toggleSoundBtn = document.getElementById('toggle-sound');
 const cameraSelect = document.getElementById('camera-select');
 const eventLog = document.getElementById('event-log');
+const loadingIndicator = document.getElementById('loading');
 
+// === Состояния ===
 let isAlertEnabled = true;
 let lastDetectionTime = 0;
 let audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-// Инициализация MediaPipe
+// === Инициализация MediaPipe ===
 const detector = new Pose({
   locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`, 
   selfieMode: true,
@@ -23,6 +27,7 @@ const detector = new Pose({
   minTrackingConfidence: 0.5
 });
 
+// === Обработка результатов ===
 detector.onResults(onResults);
 
 function onResults(results) {
@@ -34,6 +39,7 @@ function onResults(results) {
   }
 }
 
+// === Рисование рамок ===
 function drawBoundingBox(landmarks) {
   const coords = landmarks.map(p => ({ x: p.x * video.videoWidth, y: p.y * video.videoHeight }));
   const xs = coords.map(p => p.x);
@@ -48,6 +54,7 @@ function drawBoundingBox(landmarks) {
   ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
 }
 
+// === Звуковые уведомления ===
 function triggerAlert() {
   if (!isAlertEnabled) return;
 
@@ -68,6 +75,7 @@ function triggerAlert() {
   }
 }
 
+// === Воспроизведение звука ===
 async function playSound() {
   try {
     const response = await fetch(SOUND_URL);
@@ -82,11 +90,13 @@ async function playSound() {
   }
 }
 
+// === Обработчики событий ===
 toggleSoundBtn.addEventListener('click', () => {
   isAlertEnabled = !isAlertEnabled;
   toggleSoundBtn.textContent = `🔔 Уведомления: ${isAlertEnabled ? 'ВКЛ' : 'ВЫКЛ'}`;
 });
 
+// === Выбор камеры ===
 async function populateCameras() {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -115,6 +125,7 @@ async function populateCameras() {
   }
 }
 
+// === Обработка видеопотока ===
 async function setupCamera(deviceId = undefined) {
   try {
     const constraints = {
@@ -127,6 +138,7 @@ async function setupCamera(deviceId = undefined) {
       overlay.width = video.videoWidth;
       overlay.height = video.videoHeight;
       video.play();
+      loadingIndicator.style.display = 'none';
     };
   } catch (err) {
     console.error('Ошибка доступа к камере:', err);
@@ -134,7 +146,9 @@ async function setupCamera(deviceId = undefined) {
   }
 }
 
+// === Инициализация ===
 async function init() {
+  loadingIndicator.style.display = 'block';
   await populateCameras();
   await setupCamera();
 }
