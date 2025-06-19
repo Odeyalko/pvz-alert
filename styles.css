@@ -4,18 +4,39 @@ body {
   background: linear-gradient(to bottom, #0f0f0f, #1a1a1a);
   font-family: 'Inter', sans-serif;
   color: white;
-  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
 }
 
 /* Контейнер */
 .container {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  width: 100%;
+  max-width: 800px;
+  margin: auto;
+  text-align: center;
+}
+
+/* Заголовок */
+.title {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #00FFB3;
 }
 
 /* Видео и канвас */
+.video-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  margin: auto;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
 video, canvas {
   position: absolute;
   top: 0;
@@ -25,24 +46,28 @@ video, canvas {
   object-fit: cover;
 }
 
-/* Панель управления */
-.control-panel {
+#loading {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  z-index: 10;
-  backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.05);
-  padding: 15px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
 }
 
-/* Кнопки и селекты */
+/* Панель управления */
+.control-panel {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
 .btn {
+  width: 100%;
   padding: 12px 18px;
   background: linear-gradient(135deg, #00ffaa, #00ccff);
   border: none;
@@ -56,45 +81,30 @@ video, canvas {
 }
 
 .btn:hover {
-  transform: scale(1.05);
+  transform: scale(1.02);
   box-shadow: 0 0 15px rgba(0, 255, 170, 0.5);
 }
 
-/* Индикатор активности */
-#activity-indicator {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  background: #00FFB3;
-  color: #000;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: bold;
-  animation: pulse 1s infinite, slideIn 0.5s ease-out;
-  z-index: 10;
+.slider {
+  width: 100%;
+  margin-top: 10px;
 }
 
-.hidden {
-  display: none;
-}
-
-/* Анимации */
-@keyframes pulse {
-  0% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
-  100% { opacity: 0.5; transform: scale(1); }
-}
-
-@keyframes slideIn {
-  from { transform: translateX(-20px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+/* Лог событий */
+.event-log {
+  margin-top: 20px;
+  background: #222;
+  padding: 15px;
+  border-radius: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 13px;
+  opacity: 0.8;
 }
 
 /* Подпись */
 .credits {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
+  margin-top: 20px;
   font-size: 12px;
   color: #666;
   opacity: 0.7;
